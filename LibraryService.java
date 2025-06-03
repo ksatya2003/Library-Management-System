@@ -1,55 +1,66 @@
+package com.example.library.service;
+
+import com.example.library.entity.*;
+import com.example.library.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.time.LocalDate;
+import java.util.List;
+
 @Service
 public class LibraryService {
+
     @Autowired private BookRepository bookRepo;
     @Autowired private UserRepository userRepo;
-    @Autowired private TransactionRepository transRepo;
+    @Autowired private TransactionRepository txnRepo;
 
-    public Book addBook(Book book) { return bookRepo.save(book); }
-    public void removeBook(Long id) { bookRepo.deleteById(id); }
+    public Book addBook(Book book) {
+        return bookRepo.save(book);
+    }
 
-    public User addUser(User user) { return userRepo.save(user); }
-    public void removeUser(Long id) { userRepo.deleteById(id); }
+    public void deleteBook(Long bookId) {
+        bookRepo.deleteById(bookId);
+    }
+
+    public User addUser(User user) {
+        return userRepo.save(user);
+    }
 
     public Transaction lendBook(Long bookId, Long userId) {
         Book book = bookRepo.findById(bookId).orElseThrow();
         if (!book.isAvailability()) throw new RuntimeException("Book not available");
+        User user = userRepo.findById(userId).orElseThrow();
+
+        Transaction txn = new Transaction();
+        txn.setBook(book);
+        txn.setUser(user);
+        txn.setIssueDate(LocalDate.now());
+        txn.setStatus("Issued");
         book.setAvailability(false);
         bookRepo.save(book);
-
-        Transaction tx = new Transaction();
-        tx.setBookId(bookId);
-        tx.setUserId(userId);
-        tx.setIssueDate(LocalDate.now());
-        tx.setStatus("Issued");
-        return transRepo.save(tx);
+        return txnRepo.save(txn);
     }
 
-    public Transaction returnBook(Long txId) {
-        Transaction tx = transRepo.findById(txId).orElseThrow();
-        tx.setReturnDate(LocalDate.now());
-        tx.setStatus("Returned");
-
-        Book book = bookRepo.findById(tx.getBookId()).orElseThrow();
+    public Transaction returnBook(Long txnId) {
+        Transaction txn = txnRepo.findById(txnId).orElseThrow();
+        txn.setReturnDate(LocalDate.now());
+        txn.setStatus("Returned");
+        Book book = txn.getBook();
         book.setAvailability(true);
         bookRepo.save(book);
-
-        return transRepo.save(tx);
+        return txnRepo.save(txn);
     }
 
-    public List<Transaction> overdueReports() {
-        return transRepo.findByReturnDateBeforeAndStatus(LocalDate.now(), "Issued");
+    public List<Transaction> getUserHistory(Long userId) {
+        User user = userRepo.findById(userId).orElseThrow();
+        return txnRepo.findByUser(user);
     }
 
-    public List<Transaction> userHistory(Long userId) {
-        return transRepo.findByUserId(userId);
+    public List<Transaction> getOverdueBooks() {
+        return txnRepo.findByReturnDateBeforeAndStatusNot(LocalDate.now(), "Returned");
     }
 
-    public List<Book> searchBooks(String key, String type) {
-        return switch (type.toLowerCase()) {
-            case "title" -> bookRepo.findByTitleContainingIgnoreCase(key);
-            case "author" -> bookRepo.findByAuthorContainingIgnoreCase(key);
-            case "category" -> bookRepo.findByCategoryContainingIgnoreCase(key);
-            default -> List.of();
-        };
+    public List<Book> searchBooks(String query) {
+        return bookRepo.findByTitleContainingIgnoreCase(query);
     }
 }
