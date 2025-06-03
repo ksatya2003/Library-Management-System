@@ -1,40 +1,54 @@
+package com.example.library.controller;
+
+import com.example.library.entity.*;
+import com.example.library.service.LibraryService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
 @RestController
-@RequestMapping("/library")
+@RequestMapping("/api/library")
 public class LibraryController {
-    @Autowired private LibraryService service;
+
+    @Autowired private LibraryService libraryService;
 
     @PostMapping("/book")
-    public Book addBook(@RequestBody Book book) { return service.addBook(book); }
+    public Book addBook(@RequestBody Book book) {
+        return libraryService.addBook(book);
+    }
 
     @DeleteMapping("/book/{id}")
-    public void deleteBook(@PathVariable Long id) { service.removeBook(id); }
+    public void deleteBook(@PathVariable Long id) {
+        libraryService.deleteBook(id);
+    }
 
     @PostMapping("/user")
-    public User addUser(@RequestBody User user) { return service.addUser(user); }
-
-    @DeleteMapping("/user/{id}")
-    public void deleteUser(@PathVariable Long id) { service.removeUser(id); }
+    public User addUser(@RequestBody User user) {
+        return libraryService.addUser(user);
+    }
 
     @PostMapping("/lend")
     public Transaction lendBook(@RequestParam Long bookId, @RequestParam Long userId) {
-        return service.lendBook(bookId, userId);
+        return libraryService.lendBook(bookId, userId);
     }
 
-    @PostMapping("/return")
-    public Transaction returnBook(@RequestParam Long transactionId) {
-        return service.returnBook(transactionId);
+    @PostMapping("/return/{txnId}")
+    public Transaction returnBook(@PathVariable Long txnId) {
+        return libraryService.returnBook(txnId);
+    }
+
+    @GetMapping("/history/{userId}")
+    public List<Transaction> getUserHistory(@PathVariable Long userId) {
+        return libraryService.getUserHistory(userId);
     }
 
     @GetMapping("/overdue")
-    public List<Transaction> overdueBooks() { return service.overdueReports(); }
-
-    @GetMapping("/history/{userId}")
-    public List<Transaction> userHistory(@PathVariable Long userId) {
-        return service.userHistory(userId);
+    public List<Transaction> getOverdueBooks() {
+        return libraryService.getOverdueBooks();
     }
 
     @GetMapping("/search")
-    public List<Book> search(@RequestParam String type, @RequestParam String keyword) {
-        return service.searchBooks(keyword, type);
+    public List<Book> searchBooks(@RequestParam String query) {
+        return libraryService.searchBooks(query);
     }
 }
